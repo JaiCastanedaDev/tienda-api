@@ -1,0 +1,85 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(STAFF)
+  createdAt DateTime @default(now())
+
+  sales     Sale[]
+}
+
+model Store {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  createdAt DateTime @default(now())
+
+  stock     Stock[]
+  sales     Sale[]
+}
+
+model Product {
+  id        String   @id @default(uuid())
+  name      String
+  sku       String   @unique
+  price     Int
+  createdAt DateTime @default(now())
+
+  stock     Stock[]
+  items     SaleItem[]
+}
+
+model Stock {
+  id        String   @id @default(uuid())
+  storeId   String
+  productId String
+  size      String
+  color     String
+  quantity  Int      @default(0)
+
+  store     Store    @relation(fields: [storeId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@unique([storeId, productId, size, color], name: "store_product_variant")
+}
+
+model Sale {
+  id        String     @id @default(uuid())
+  storeId   String
+  userId    String
+  total     Int
+  createdAt DateTime   @default(now())
+
+  store     Store      @relation(fields: [storeId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+  items     SaleItem[]
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  productId String
+
+  size      String
+  color     String
+
+  quantity  Int
+  price     Int
+
+  sale      Sale    @relation(fields: [saleId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
