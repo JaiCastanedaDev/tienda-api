@@ -7,79 +7,134 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// 🏪 Tenants (las tiendas) - Base del sistema multitenant
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  plan      String   @default("free")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users           User[]
+  products        Product[]
+  stockMovements  StockMovement[]
+  sales           Sale[]
+
+  @@map("tenants")
+}
+
+// 👥 Usuarios - Scoped a tenant
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(STAFF)
-  createdAt DateTime @default(now())
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  name     String
+  email    String
+  role     Role   @default(SELLER)
 
-  sales     Sale[]
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales  Sale[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
 }
 
-model Store {
-  id        String   @id @default(uuid())
-  name      String
-  address   String
-  createdAt DateTime @default(now())
-
-  stock     Stock[]
-  sales     Sale[]
-}
-
+// 📦 Productos - Scoped a tenant
 model Product {
-  id        String   @id @default(uuid())
-  name      String
-  sku       String   @unique
-  price     Int
-  createdAt DateTime @default(now())
+  id       String  @id @default(uuid())
+  tenantId String  @map("tenant_id")
+  name     String
+  sku      String
+  price    Int
+  active   Boolean @default(true)
 
-  stock     Stock[]
-  items     SaleItem[]
+  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  variants ProductVariant[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@map("products")
 }
 
+// 👕 Variantes de producto
+model ProductVariant {
+  id        String @id @default(uuid())
+  productId String @map("product_id")
+  size      String
+  color     String
+
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stock          Stock?
+  stockMovements StockMovement[]
+  saleItems      SaleItem[]
+
+  @@unique([productId, size, color])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+// 📊 Stock
 model Stock {
-  id        String   @id @default(uuid())
-  storeId   String
-  productId String
-  size      String
-  color     String
-  quantity  Int      @default(0)
+  id               String @id @default(uuid())
+  productVariantId String @unique @map("product_variant_id")
+  quantity         Int    @default(0)
 
-  store     Store    @relation(fields: [storeId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
 
-  @@unique([storeId, productId, size, color], name: "store_product_variant")
+  @@map("stock")
 }
 
+// 🔁 Movimientos de stock - Scoped a tenant
+model StockMovement {
+  id               String   @id @default(uuid())
+  tenantId         String   @map("tenant_id")
+  productVariantId String   @map("product_variant_id")
+  type             String
+  quantity         Int
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([productVariantId])
+  @@map("stock_movements")
+}
+
+// 🧾 Ventas - Scoped a tenant
 model Sale {
-  id        String     @id @default(uuid())
-  storeId   String
-  userId    String
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  userId    String   @map("user_id")
   total     Int
-  createdAt DateTime   @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
-  store     Store      @relation(fields: [storeId], references: [id])
-  user      User       @relation(fields: [userId], references: [id])
-  items     SaleItem[]
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  SaleItem[]
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("sales")
 }
 
+// 🧾 Items de venta
 model SaleItem {
-  id        String  @id @default(uuid())
-  saleId    String
-  productId String
+  id               String @id @default(uuid())
+  saleId           String @map("sale_id")
+  productVariantId String @map("product_variant_id")
+  quantity         Int
+  price            Int
 
-  size      String
-  color     String
+  sale           Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
 
-  quantity  Int
-  price     Int
-
-  sale      Sale    @relation(fields: [saleId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
+  @@index([saleId])
+  @@index([productVariantId])
+  @@map("sale_items")
 }
 
 enum Role {
-  ADMIN
-  STAFF
+  OWNER
+  SELLER
 }
