@@ -1,10 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { AddStockDto } from './dto/add-stock.dto';
@@ -24,10 +18,7 @@ export class ProductsController {
   }
 
   @Post(':id/stock')
-  addStock(
-    @Param('id') productId: string,
-    @Body() dto: AddStockDto,
-  ) {
+  addStock(@Param('id') productId: string, @Body() dto: AddStockDto) {
     return this.productsService.addStock(productId, dto);
   }
 }

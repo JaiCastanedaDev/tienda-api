@@ -1,30 +1,37 @@
-import { IsArray, IsInt, IsString, Min, ValidateNested } from 'class-validator'
-import { Type } from 'class-transformer'
+import {
+  IsArray,
+  IsInt,
+  IsString,
+  Min,
+  ValidateNested,
+  IsUUID,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateSaleItemDto {
   @IsString()
-  productId: string
+  productId: string;
 
   @IsString()
-  size: string
+  size: string;
 
   @IsString()
-  color: string
+  color: string;
 
   @IsInt()
   @Min(1)
-  quantity: number
+  quantity: number;
 }
 
 export class CreateSaleDto {
-  @IsString()
-  storeId: string
+  @IsUUID()
+  tenantId: string;
 
   @IsString()
-  userId: string
+  userId: string;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateSaleItemDto)
-  items: CreateSaleItemDto[]
+  items: CreateSaleItemDto[];
 }

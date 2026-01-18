@@ -1,6 +1,6 @@
-import { Controller, Post, Body } from '@nestjs/common'
-import { SalesService } from './sales.service'
-import { CreateSaleDto } from './dto/create-sale.dto'
+import { Controller, Post, Body } from '@nestjs/common';
+import { SalesService } from './sales.service';
+import { CreateSaleDto } from './dto/create-sale.dto';
 
 @Controller('sales')
 export class SalesController {
@@ -8,6 +8,6 @@ export class SalesController {
 
   @Post()
   create(@Body() dto: CreateSaleDto) {
-    return this.salesService.createSale(dto)
+    return this.salesService.createSale(dto);
   }
 }
