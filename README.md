@@ -21,14 +21,153 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+# 🏪 Tienda API - Sistema Multi-tenant con Autenticación JWT
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+API RESTful construida con NestJS para gestión de tiendas multi-tenant con sistema completo de autenticación y autorización.
 
-## Project setup
+## ✨ Características Principales
+
+- 🔐 **Autenticación JWT** completa con bcrypt
+- 🏢 **Multi-tenant** con aislamiento de datos
+- 👥 **Control de acceso basado en roles** (OWNER, SELLER)
+- 📦 **Gestión de productos** con variantes y stock
+- 🧾 **Sistema de ventas** integrado
+- ✅ **Validación de datos** con class-validator
+- 🗄️ **Prisma ORM** con PostgreSQL
+- 📝 **Documentación completa** con ejemplos
+
+## 🚀 Inicio Rápido
+
+### 1. Instalar dependencias
+```bash
+npm install
+```
+
+### 2. Configurar variables de entorno
+
+Crea un archivo `.env`:
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/database"
+JWT_SECRET=tu-clave-secreta-muy-segura-minimo-32-caracteres
+```
+
+### 3. Ejecutar migraciones
 
 ```bash
-$ npm install
+npx prisma migrate dev
+```
+
+### 4. Iniciar el servidor
+
+```bash
+npm run start:dev
+```
+
+El servidor estará disponible en `http://localhost:3000`
+
+## 🔐 Autenticación
+
+### Registro de Usuario
+
+```bash
+POST /auth/register
+Content-Type: application/json
+
+{
+  "name": "Juan Pérez",
+  "email": "juan@example.com",
+  "password": "Password123!",
+  "tenantId": "uuid-del-tenant",
+  "role": "OWNER"
+}
+```
+
+### Login
+
+```bash
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "juan@example.com",
+  "password": "Password123!",
+  "tenantId": "uuid-del-tenant"
+}
+```
+
+**Respuesta:**
+```json
+{
+  "user": { ... },
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+### Usar el Token
+
+Incluye el token en el header `Authorization` de todas las peticiones protegidas:
+
+```
+Authorization: Bearer <tu-token-jwt>
+```
+
+## 📚 Documentación Completa
+
+- **[AUTHENTICATION.md](AUTHENTICATION.md)** - Guía completa de autenticación y seguridad
+- **[API_EXAMPLES.md](API_EXAMPLES.md)** - Ejemplos prácticos con PowerShell
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Resumen de la implementación
+
+## 🧪 Probar la API
+
+Ejecuta el script de prueba:
+
+```powershell
+.\test-auth.ps1
+```
+
+Este script probará automáticamente:
+- ✅ Registro de usuarios
+- ✅ Login
+- ✅ Obtención de perfil
+- ✅ Acceso a rutas protegidas
+- ✅ Bloqueo sin autenticación
+
+## 🛡️ Roles y Permisos
+
+| Endpoint | OWNER | SELLER |
+|----------|-------|--------|
+| GET /products | ✅ | ✅ |
+| POST /products | ✅ | ❌ |
+| POST /products/:id/stock | ✅ | ❌ |
+| GET /sales | ✅ | ✅ |
+| POST /sales | ✅ | ✅ |
+
+## 📁 Estructura del Proyecto
+
+```
+src/
+├── auth/                   # Sistema de autenticación
+│   ├── decorators/        # @CurrentUser, @Roles
+│   ├── dto/               # DTOs de login/registro
+│   ├── guards/            # JwtAuthGuard, RolesGuard
+│   ├── interfaces/        # Tipos e interfaces
+│   └── strategies/        # JWT Strategy
+├── prisma/                # Configuración de Prisma
+├── products/              # Gestión de productos
+└── sales/                 # Gestión de ventas
+```
+
+## 🔒 Seguridad Implementada
+
+- ✅ Hash de contraseñas con bcrypt (12 salt rounds)
+- ✅ Tokens JWT con expiración de 24 horas
+- ✅ Validación de entrada en todos los endpoints
+- ✅ Arquitectura multi-tenant segura
+- ✅ Control de acceso basado en roles (RBAC)
+- ✅ Tipos seguros con TypeScript
+
+## Description$ npm install
 ```
 
 ## Compile and run the project

@@ -14,11 +14,12 @@ model Tenant {
   plan      String   @default("free")
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  users           User[]
-  products        Product[]
-  stockMovements  StockMovement[]
-  sales           Sale[]
+  users          User[]
+  products       Product[]
+  stockMovements StockMovement[]
+  sales          Sale[]
 
   @@map("tenants")
 }
@@ -28,13 +29,16 @@ model User {
   id       String @id @default(uuid())
   tenantId String @map("tenant_id")
   name     String
-  email    String
+  email    String @unique // Email único globalmente
+  password String
   role     Role   @default(SELLER)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sales  Sale[]
 
-  @@unique([tenantId, email])
   @@index([tenantId])
   @@map("users")
 }
@@ -48,7 +52,10 @@ model Product {
   price    Int
   active   Boolean @default(true)
 
-  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   variants ProductVariant[]
 
   @@unique([tenantId, sku])
@@ -62,6 +69,9 @@ model ProductVariant {
   productId String @map("product_id")
   size      String
   color     String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   stock          Stock?
@@ -79,6 +89,9 @@ model Stock {
   productVariantId String @unique @map("product_variant_id")
   quantity         Int    @default(0)
 
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
 
   @@map("stock")
@@ -86,12 +99,14 @@ model Stock {
 
 // 🔁 Movimientos de stock - Scoped a tenant
 model StockMovement {
-  id               String   @id @default(uuid())
-  tenantId         String   @map("tenant_id")
-  productVariantId String   @map("product_variant_id")
-  type             String
+  id               String            @id @default(uuid())
+  tenantId         String            @map("tenant_id")
+  productVariantId String            @map("product_variant_id")
+  type             StockMovementType
   quantity         Int
-  createdAt        DateTime @default(now()) @map("created_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
@@ -103,11 +118,13 @@ model StockMovement {
 
 // 🧾 Ventas - Scoped a tenant
 model Sale {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("tenant_id")
-  userId    String   @map("user_id")
-  total     Int
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  userId   String @map("user_id")
+  total    Int
+
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -126,6 +143,9 @@ model SaleItem {
   quantity         Int
   price            Int
 
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   sale           Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
   productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
 
@@ -137,4 +157,9 @@ model SaleItem {
 enum Role {
   OWNER
   SELLER
+}
+
+enum StockMovementType {
+  IN
+  OUT
 }
