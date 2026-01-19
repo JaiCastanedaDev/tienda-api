@@ -32,6 +32,7 @@ API RESTful construida con NestJS para gestión de tiendas multi-tenant con sist
 - 👥 **Control de acceso basado en roles** (OWNER, SELLER)
 - 📦 **Gestión de productos** con variantes y stock
 - 🧾 **Sistema de ventas** integrado
+- 📊 **Dashboard con métricas** avanzadas y estadísticas
 - ✅ **Validación de datos** con class-validator
 - 🗄️ **Prisma ORM** con PostgreSQL
 - 📝 **Documentación completa** con ejemplos
@@ -114,19 +115,30 @@ Authorization: Bearer <tu-token-jwt>
 
 ## 📚 Documentación Completa
 
+- **[API_REFERENCE.md](API_REFERENCE.md)** - 📖 Referencia completa de todas las APIs
 - **[AUTHENTICATION.md](AUTHENTICATION.md)** - Guía completa de autenticación y seguridad
+- **[DASHBOARD_API.md](DASHBOARD_API.md)** - API de métricas y estadísticas del dashboard
 - **[API_EXAMPLES.md](API_EXAMPLES.md)** - Ejemplos prácticos con PowerShell
 - **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Resumen de la implementación
 
 ## 🧪 Probar la API
 
-Ejecuta el script de prueba:
-
+### Autenticación
 ```powershell
 .\test-auth.ps1
 ```
 
-Este script probará automáticamente:
+### Dashboard
+```powershell
+.\test-dashboard.ps1
+```
+
+### Completo
+```powershell
+.\test-complete.ps1
+```
+
+Estos scripts probarán automáticamente:
 - ✅ Registro de usuarios
 - ✅ Login
 - ✅ Obtención de perfil
@@ -153,6 +165,7 @@ src/
 │   ├── guards/            # JwtAuthGuard, RolesGuard
 │   ├── interfaces/        # Tipos e interfaces
 │   └── strategies/        # JWT Strategy
+├── dashboard/             # API de métricas y estadísticas
 ├── prisma/                # Configuración de Prisma
 ├── products/              # Gestión de productos
 └── sales/                 # Gestión de ventas

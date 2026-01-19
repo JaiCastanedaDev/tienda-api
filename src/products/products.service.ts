@@ -7,8 +7,8 @@ import { AddStockDto } from './dto/add-stock.dto';
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
-  async createProduct(dto: CreateProductDto) {
-    const { tenantId, name, sku, price, variants } = dto;
+  async createProduct(tenantId: string, dto: CreateProductDto) {
+    const { name, sku, price, variants } = dto;
 
     return this.prisma.product.create({
       data: {
@@ -40,8 +40,9 @@ export class ProductsService {
     });
   }
 
-  async listProducts() {
+  async listProducts(tenantId: string) {
     return this.prisma.product.findMany({
+      where: { tenantId, active: true },
       include: {
         variants: {
           include: {
@@ -49,25 +50,24 @@ export class ProductsService {
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  async addStock(productId: string, dto: AddStockDto) {
-    const { tenantId, size, color, quantity } = dto;
+  async addStock(tenantId: string, productId: string, dto: AddStockDto) {
+    const { size, color, quantity } = dto;
 
-    // Validación simple: asegurar que el producto exista y pertenezca al tenant
+    // asegurar que el producto exista y pertenezca al tenant
     const product = await this.prisma.product.findFirst({
       where: { id: productId, tenantId },
       select: { id: true },
     });
 
     if (!product) {
-      throw new NotFoundException(
-        'Producto no encontrado para el tenant indicado',
-      );
+      throw new NotFoundException('Producto no encontrado');
     }
 
-    // Buscar o crear la variante usando la unique compuesta (productId,size,color)
+    // Buscar o crear la variante
     const variant = await this.prisma.productVariant.upsert({
       where: {
         productId_size_color: {
@@ -84,7 +84,6 @@ export class ProductsService {
       },
     });
 
-    // Stock es 1:1 con la variante y la clave única es productVariantId
     const stock = await this.prisma.stock.upsert({
       where: { productVariantId: variant.id },
       update: {
@@ -96,7 +95,6 @@ export class ProductsService {
       },
     });
 
-    // Registrar movimiento (opcional pero útil)
     await this.prisma.stockMovement.create({
       data: {
         tenantId,

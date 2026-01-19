@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
@@ -10,11 +11,11 @@ import { CreateSaleDto } from './dto/create-sale.dto';
 export class SalesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createSale(dto: CreateSaleDto) {
+  async createSale(tenantId: string, userId: string, dto: CreateSaleDto) {
     return this.prisma.$transaction(async (tx) => {
       let total = 0;
 
-      // 1) Validar existencia de variantes y stock + calcular total
+      // 1) Validar existencia de variantes, pertenencia a tenant y stock + calcular total
       for (const item of dto.items) {
         const variant = await tx.productVariant.findUnique({
           where: {
@@ -36,6 +37,13 @@ export class SalesService {
           );
         }
 
+        // Seguridad multi-tenant: el producto de la variante debe ser del tenant
+        if (variant.product.tenantId !== tenantId) {
+          throw new ForbiddenException(
+            'No puedes vender productos de otra tienda',
+          );
+        }
+
         const available = variant.stock?.quantity ?? 0;
         if (available < item.quantity) {
           throw new BadRequestException(
@@ -49,8 +57,8 @@ export class SalesService {
       // 2) Crear venta
       const sale = await tx.sale.create({
         data: {
-          tenantId: dto.tenantId,
-          userId: dto.userId,
+          tenantId,
+          userId,
           total,
         },
       });
@@ -76,6 +84,13 @@ export class SalesService {
           );
         }
 
+        // Defensa extra
+        if (variant.product.tenantId !== tenantId) {
+          throw new ForbiddenException(
+            'No puedes vender productos de otra tienda',
+          );
+        }
+
         await tx.saleItem.create({
           data: {
             saleId: sale.id,
@@ -85,7 +100,6 @@ export class SalesService {
           },
         });
 
-        // Descontar stock (si no existiera registro de stock, esto fallará; por eso validamos arriba)
         await tx.stock.update({
           where: { productVariantId: variant.id },
           data: {
@@ -97,7 +111,7 @@ export class SalesService {
 
         await tx.stockMovement.create({
           data: {
-            tenantId: dto.tenantId,
+            tenantId,
             productVariantId: variant.id,
             type: 'OUT',
             quantity: item.quantity,
@@ -105,7 +119,37 @@ export class SalesService {
         });
       }
 
-      return sale;
+      return tx.sale.findUnique({
+        where: { id: sale.id },
+        include: {
+          items: {
+            include: {
+              productVariant: {
+                include: { product: true },
+              },
+            },
+          },
+        },
+      });
+    });
+  }
+
+  async listSales(tenantId: string) {
+    return this.prisma.sale.findMany({
+      where: { tenantId },
+      include: {
+        items: {
+          include: {
+            productVariant: {
+              include: { product: true },
+            },
+          },
+        },
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 }

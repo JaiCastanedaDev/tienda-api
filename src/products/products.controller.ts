@@ -5,6 +5,8 @@ import { AddStockDto } from './dto/add-stock.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UserPayload } from '../auth/interfaces/user-payload.interface';
 
 @Controller('products')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,19 +15,23 @@ export class ProductsController {
 
   @Post()
   @Roles('OWNER')
-  create(@Body() dto: CreateProductDto) {
-    return this.productsService.createProduct(dto);
+  create(@CurrentUser() user: UserPayload, @Body() dto: CreateProductDto) {
+    return this.productsService.createProduct(user.tenantId, dto);
   }
 
   @Get()
   @Roles('OWNER', 'SELLER')
-  findAll() {
-    return this.productsService.listProducts();
+  findAll(@CurrentUser() user: UserPayload) {
+    return this.productsService.listProducts(user.tenantId);
   }
 
   @Post(':id/stock')
   @Roles('OWNER')
-  addStock(@Param('id') productId: string, @Body() dto: AddStockDto) {
-    return this.productsService.addStock(productId, dto);
+  addStock(
+    @CurrentUser() user: UserPayload,
+    @Param('id') productId: string,
+    @Body() dto: AddStockDto,
+  ) {
+    return this.productsService.addStock(user.tenantId, productId, dto);
   }
 }

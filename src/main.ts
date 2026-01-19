@@ -22,4 +22,8 @@ async function bootstrap() {
 
   await app.listen(3000);
 }
-bootstrap();
+
+void bootstrap().catch((err) => {
+  console.error('Error al iniciar la aplicación', err);
+  process.exit(1);
+});

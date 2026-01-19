@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   IsInt,
   Min,
-  IsUUID,
   IsArray,
   ValidateNested,
   IsOptional,
@@ -25,9 +24,6 @@ export class CreateProductVariantDto {
 }
 
 export class CreateProductDto {
-  @IsUUID()
-  tenantId: string;
-
   @IsString()
   @IsNotEmpty()
   name: string;

@@ -14,14 +14,13 @@ export class SalesController {
 
   @Post()
   @Roles('OWNER', 'SELLER')
-  create(@Body() dto: CreateSaleDto) {
-    return this.salesService.createSale(dto);
+  create(@CurrentUser() user: UserPayload, @Body() dto: CreateSaleDto) {
+    return this.salesService.createSale(user.tenantId, user.id, dto);
   }
 
   @Get()
   @Roles('OWNER', 'SELLER')
   findAll(@CurrentUser() user: UserPayload) {
-    // Aquí puedes implementar el método en el servicio para listar ventas
-    return { message: 'Lista de ventas', userId: user.id };
+    return this.salesService.listSales(user.tenantId);
   }
 }

@@ -1,9 +1,6 @@
-import { IsInt, IsPositive, IsString, IsUUID } from 'class-validator';
+import { IsInt, IsPositive, IsString } from 'class-validator';
 
 export class AddStockDto {
-  @IsUUID()
-  tenantId: string;
-
   @IsString()
   size: string;
 
