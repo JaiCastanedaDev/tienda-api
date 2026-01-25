@@ -6,6 +6,7 @@ import { ProductsModule } from './products/products.module';
 import { AuthModule } from './auth/auth.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { StockModule } from './stock/stock.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { StockModule } from './stock/stock.module';
     AuthModule,
     DashboardModule,
     StockModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

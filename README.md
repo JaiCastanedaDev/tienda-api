@@ -248,3 +248,28 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+# Store Admin API
+
+## IA (OpenRouter)
+
+Se añadió un módulo `ai` que genera recomendaciones para el dueño basadas en ventas + inventario.
+
+### Variables de entorno
+
+- `OPENROUTER_API_KEY` (requerida): API Key de OpenRouter.
+- `OPENROUTER_MODEL` (opcional): modelo a usar. Default: `openai/gpt-4o-mini`.
+- `OPENROUTER_HTTP_REFERER` (opcional): valor para el header `HTTP-Referer`.
+- `OPENROUTER_APP_NAME` (opcional): valor para el header `X-Title`.
+
+### Endpoints
+
+Con prefijo global `api`:
+
+- `GET /api/ai/models` (roles: `OWNER`, `SELLER`)
+- `POST /api/ai/chat` (roles: `OWNER`, `SELLER`)
+  - body: `{ "message": "...", "context"?: "..." }`
+- `POST /api/ai/insights` (role: `OWNER`)
+  - body (opcional): `{ "days"?: 30 }`
+
+> Nota: `insights` arma un contexto con métricas del dashboard, resumen de inventario, top ventas, variantes con bajo stock y slow-movers.
