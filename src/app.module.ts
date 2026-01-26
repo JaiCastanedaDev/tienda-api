@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { StockModule } from './stock/stock.module';
 import { AiModule } from './ai/ai.module';
+import { SalesModule } from './sales/sales.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AiModule } from './ai/ai.module';
     AuthModule,
     DashboardModule,
     StockModule,
+    SalesModule,
     AiModule,
   ],
   controllers: [AppController],

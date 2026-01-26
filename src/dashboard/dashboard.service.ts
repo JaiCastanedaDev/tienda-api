@@ -10,15 +10,30 @@ import type {
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
-  async getMetrics(tenantId: string): Promise<DashboardMetrics> {
+  async getMetrics(
+    tenantId: string,
+    params?: { month?: number; year?: number },
+  ): Promise<DashboardMetrics> {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    const thirtyDaysAgo = new Date(now);
-    thirtyDaysAgo.setDate(now.getDate() - 30);
 
-    // Obtener métricas del mes actual en paralelo
+    const targetYear = params?.year ?? now.getUTCFullYear();
+    const targetMonth = params?.month ?? now.getUTCMonth() + 1; // 1-12
+
+    const startOfMonth = new Date(
+      Date.UTC(targetYear, targetMonth - 1, 1, 0, 0, 0, 0),
+    );
+    const endOfMonth = new Date(
+      Date.UTC(targetYear, targetMonth, 1, 0, 0, 0, 0) - 1,
+    );
+
+    const startOfLastMonth = new Date(
+      Date.UTC(targetYear, targetMonth - 2, 1, 0, 0, 0, 0),
+    );
+    const endOfLastMonth = new Date(
+      Date.UTC(targetYear, targetMonth - 1, 1, 0, 0, 0, 0) - 1,
+    );
+
+    // Obtener métricas del mes seleccionado en paralelo
     const [
       currentMonthSales,
       lastMonthSales,
@@ -26,10 +41,10 @@ export class DashboardService {
       dailySales,
       lowStockCount,
     ] = await Promise.all([
-      this.getMonthSales(tenantId, startOfMonth, now),
+      this.getMonthSales(tenantId, startOfMonth, endOfMonth),
       this.getMonthSales(tenantId, startOfLastMonth, endOfLastMonth),
-      this.getTopProducts(tenantId, startOfMonth, now),
-      this.getDailySales(tenantId, thirtyDaysAgo, now),
+      this.getTopProducts(tenantId, startOfMonth, endOfMonth),
+      this.getDailySales(tenantId, startOfMonth, endOfMonth),
       this.getLowStockCount(tenantId),
     ]);
 
@@ -59,7 +74,7 @@ export class DashboardService {
         tenantId,
         createdAt: {
           gte: startOfMonth,
-          lte: now,
+          lte: endOfMonth,
         },
       },
       select: { userId: true },
@@ -67,6 +82,12 @@ export class DashboardService {
     });
 
     return {
+      period: {
+        month: targetMonth,
+        year: targetYear,
+        from: startOfMonth.toISOString(),
+        to: endOfMonth.toISOString(),
+      },
       monthlyRevenue: currentMonthSales.revenue,
       monthlyUnits: currentMonthSales.units,
       monthlySales: currentMonthSales.count,
@@ -235,7 +256,7 @@ export class DashboardService {
     // Consideramos bajo stock cuando hay menos de 5 unidades
     const LOW_STOCK_THRESHOLD = 5;
 
-    const lowStock = await this.prisma.stock.count({
+    return this.prisma.stock.count({
       where: {
         quantity: {
           lt: LOW_STOCK_THRESHOLD,
@@ -248,8 +269,6 @@ export class DashboardService {
         },
       },
     });
-
-    return lowStock;
   }
 
   private calculatePercentageChange(

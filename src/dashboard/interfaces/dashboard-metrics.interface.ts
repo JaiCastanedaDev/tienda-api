@@ -1,4 +1,14 @@
 export interface DashboardMetrics {
+  /**
+   * Periodo usado para calcular las métricas.
+   */
+  period?: {
+    month: number; // 1-12
+    year: number;
+    from: string; // ISO
+    to: string; // ISO
+  };
+
   // Métricas del mes actual
   monthlyRevenue: number;
   monthlyUnits: number;

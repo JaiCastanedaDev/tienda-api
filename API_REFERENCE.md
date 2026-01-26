@@ -8,8 +8,9 @@
 4. [Ventas](#ventas)
 5. [Dashboard](#dashboard)
 6. [Stock](#stock)
-7. [Códigos de Estado](#códigos-de-estado)
-8. [Ejemplos de Integración](#ejemplos-de-integración)
+7. [IA (OpenRouter)](#ia-openrouter)
+8. [Códigos de Estado](#códigos-de-estado)
+9. [Ejemplos de Integración](#ejemplos-de-integración)
 
 ---
 
@@ -377,6 +378,97 @@ Authorization: Bearer <token>
 **Errores:**
 - `404 Not Found`: Producto o variante no encontrada
 - `403 Forbidden`: Usuario no es OWNER
+
+---
+
+### 4. Agregar Imagen a Variante
+
+**Endpoint:** `POST /products/variant-image`
+
+**Autenticación:** Requerida (JWT)
+
+**Roles:** Solo OWNER
+
+**Descripción:** Asocia una o más imágenes a una variante (producto + talla + color). Permite marcar una imagen como principal (`isPrimary`).
+
+**Body:**
+```json
+{
+  "productId": "uuid-product",
+  "size": "M",
+  "color": "Negro",
+  "url": "https://.../imagen.jpg",
+  "alt": "Camiseta negra talla M",
+  "isPrimary": true,
+  "sortOrder": 0
+}
+```
+
+**Respuesta Exitosa (201/200):**
+```json
+{
+  "id": "uuid-image",
+  "productVariantId": "uuid-variant",
+  "url": "https://.../imagen.jpg",
+  "alt": "Camiseta negra talla M",
+  "isPrimary": true,
+  "sortOrder": 0,
+  "createdAt": "2026-01-26T02:30:00.000Z",
+  "updatedAt": "2026-01-26T02:30:00.000Z"
+}
+```
+
+---
+
+> Nota: `GET /products` ahora incluye `variants.images` ordenadas (primero `isPrimary=true`, luego por `sortOrder`).
+
+---
+
+### 5. Actualizar Producto (Editar)
+
+**Endpoint:** `PUT /products/:id`
+
+**Autenticación:** Requerida (JWT)
+
+**Roles:** Solo OWNER
+
+**Descripción:** Actualiza la **metadata** del producto (nombre, SKU, precio). **No modifica stock**.
+
+> Si el frontend envía `variants`, serán ignoradas por el backend. Para inventario usa `POST /products/:id/stock` o los endpoints de `/stock`.
+
+**Body:**
+```json
+{
+  "name": "Jean Slim Adidas",
+  "sku": "JNS-2QKT62",
+  "price": 164759
+}
+```
+
+**Respuesta Exitosa (200):**
+Devuelve el producto actualizado incluyendo `variants.stock` e `variants.images`.
+
+---
+
+### 6. Eliminar Producto
+
+**Endpoint:** `DELETE /products/:id`
+
+**Autenticación:** Requerida (JWT)
+
+**Roles:** Solo OWNER
+
+**Descripción:** Elimina un producto de forma **lógica** (soft delete) marcándolo como `active=false`. Esto evita romper ventas/históricos.
+
+**Respuesta Exitosa (200):**
+```json
+{ "message": "Producto eliminado" }
+```
+
+Si ya estaba eliminado:
+```json
+{ "message": "Producto ya estaba eliminado" }
+```
 
 ---
 
@@ -768,6 +860,78 @@ Authorization: Bearer <token>
 
 ---
 
+## 🤖 IA (OpenRouter)
+
+> Todos los endpoints de IA requieren JWT y respetan el `tenantId` del token.
+
+### 1. Obtener modelo activo
+
+**Endpoint:** `GET /ai/models`
+
+**Autenticación:** Requerida (JWT)
+
+**Roles:** OWNER, SELLER
+
+**Descripción:** Devuelve el modelo configurado por defecto.
+
+---
+
+### 2. Chat (preguntas sobre ventas/stock/productos)
+
+**Endpoint:** `POST /ai/chat`
+
+**Autenticación:** Requerida (JWT)
+
+**Roles:** OWNER, SELLER
+
+**Body:**
+```json
+{
+  "message": "¿Qué productos debo reponer esta semana?",
+  "context": "Enfócate en ropa deportiva" 
+}
+```
+
+- `context` es opcional.
+
+**Respuesta Exitosa (200):**
+```json
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": { "total_tokens": 1234 },
+  "answer": "..."
+}
+```
+
+---
+
+### 3. Insights (recomendación de compra para el próximo mes)
+
+**Endpoint:** `POST /ai/insights`
+
+**Autenticación:** Requerida (JWT)
+
+**Roles:** Solo OWNER
+
+**Body (opcional):**
+```json
+{ "days": 30 }
+```
+
+**Respuesta Exitosa (200):**
+```json
+{
+  "model": "openai/gpt-4o-mini",
+  "days": 30,
+  "usage": { "total_tokens": 1449 },
+  "insights": "..."
+}
+```
+
+> La IA construye un contexto interno con: top ventas, low-stock, slow-movers, conteos de catálogo e inventario.
+
+---
+
 ## 📋 Códigos de Estado HTTP
 
 | Código | Descripción |
@@ -1018,6 +1182,9 @@ $metrics = Invoke-RestMethod -Uri "http://localhost:3000/dashboard/metrics" `
 | POST | /products | OWNER | Crear producto |
 | GET | /products | ALL | Listar productos |
 | POST | /products/:id/stock | OWNER | Agregar stock |
+| POST | /products/variant-image | OWNER | Agregar imagen a variante |
+| PUT | /products/:id | OWNER | Actualizar producto |
+| DELETE | /products/:id | OWNER | Eliminar producto |
 
 #### Ventas
 | Método | Endpoint | Roles | Descripción |
@@ -1039,6 +1206,13 @@ $metrics = Invoke-RestMethod -Uri "http://localhost:3000/dashboard/metrics" `
 | POST | /stock/adjust | OWNER | Ajustar stock (+/-) |
 | POST | /stock/set | OWNER | Establecer stock (exacto) |
 | GET | /stock/movements | OWNER | Listar movimientos |
+
+#### IA
+| Método | Endpoint | Roles | Descripción |
+|--------|----------|-------|-------------|
+| GET | /ai/models | ALL | Obtener modelo activo |
+| POST | /ai/chat | ALL | Consultar al modelo |
+| POST | /ai/insights | OWNER | Obtener insights de compra |
 
 ---
 

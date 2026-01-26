@@ -16,16 +16,26 @@ describe('ProductsService', () => {
               create: jest.fn(),
               findMany: jest.fn(),
               findFirst: jest.fn(),
+              update: jest.fn(),
+              findUnique: jest.fn(),
             },
             productVariant: {
               upsert: jest.fn(),
+              findUnique: jest.fn(),
             },
             stock: {
               upsert: jest.fn(),
+              findUnique: jest.fn(),
+            },
+            variantImage: {
+              createMany: jest.fn(),
+              updateMany: jest.fn(),
+              create: jest.fn(),
             },
             stockMovement: {
               create: jest.fn(),
             },
+            $transaction: jest.fn(),
           },
         },
       ],

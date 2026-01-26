@@ -77,10 +77,29 @@ model ProductVariant {
   stock          Stock?
   stockMovements StockMovement[]
   saleItems      SaleItem[]
+  images         VariantImage[]
 
   @@unique([productId, size, color])
   @@index([productId])
   @@map("product_variants")
+}
+
+// 📸 Imágenes de variantes de producto
+model VariantImage {
+  id               String  @id @default(uuid())
+  productVariantId String  @map("product_variant_id")
+  url              String
+  alt              String?
+  isPrimary        Boolean @default(false) @map("is_primary")
+  sortOrder        Int     @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@index([productVariantId])
+  @@map("variant_images")
 }
 
 // 📊 Stock
