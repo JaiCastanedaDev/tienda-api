@@ -8,13 +8,15 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { AddStockDto } from './dto/add-stock.dto';
 import { VariantImageDto } from './dto/variant-image.dto';
 import { UpdateProductMetadataDto } from './dto/update-product-metadata.dto';
+import type { VariantImageInputDto } from './dto/create-product.dto';
+import type { UpdateVariantImageDto } from './dto/update-product-metadata.dto';
 
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
   async createProduct(tenantId: string, dto: CreateProductDto) {
-    const { name, sku, price, variants } = dto;
+    const { name, sku, price, variants, images } = dto;
 
     return this.prisma.product.create({
       data: {
@@ -32,6 +34,16 @@ export class ProductsService {
                     quantity: v.quantity,
                   },
                 },
+                images: v.images?.length
+                  ? {
+                      create: v.images.map((img) => ({
+                        url: img.url,
+                        alt: img.alt,
+                        isPrimary: img.isPrimary ?? false,
+                        sortOrder: img.sortOrder ?? 0,
+                      })),
+                    }
+                  : undefined,
               })),
             }
           : undefined,
@@ -40,7 +52,9 @@ export class ProductsService {
         variants: {
           include: {
             stock: true,
-            images: true,
+            images: {
+              orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+            },
           },
         },
       },
@@ -173,7 +187,7 @@ export class ProductsService {
     productId: string,
     dto: UpdateProductMetadataDto,
   ) {
-    // update directo y rápido, limitado por tenant
+    // Verificar que el producto exista y pertenezca al tenant
     const product = await this.prisma.product.findFirst({
       where: { id: productId, tenantId },
       select: { id: true },
@@ -183,6 +197,69 @@ export class ProductsService {
       throw new NotFoundException('Producto no encontrado');
     }
 
+    // Si hay imágenes para crear/actualizar, hacerlo en una transacción
+    if (dto.images && dto.images.length > 0) {
+      const images = dto.images; // Asegurar que TypeScript entienda que no es undefined
+      return this.prisma.$transaction(async (tx) => {
+        // Actualizar metadata del producto
+        const updatedProduct = await tx.product.update({
+          where: { id: productId },
+          data: {
+            name: dto.name,
+            sku: dto.sku,
+            price: dto.price,
+          },
+        });
+
+        // Crear imágenes para la primera variante del producto
+        const firstVariant = await tx.productVariant.findFirst({
+          where: { productId },
+        });
+
+        if (firstVariant) {
+          // Si hay una imagen marcada como primaria, desmarcar todas las demás
+          const hasPrimary = images.some((img) => img.isPrimary);
+          if (hasPrimary) {
+            await tx.variantImage.updateMany({
+              where: {
+                productVariantId: firstVariant.id,
+                isPrimary: true,
+              },
+              data: { isPrimary: false },
+            });
+          }
+
+          // Crear las nuevas imágenes
+          for (const img of images) {
+            await tx.variantImage.create({
+              data: {
+                productVariantId: firstVariant.id,
+                url: img.url,
+                alt: img.alt,
+                isPrimary: img.isPrimary ?? false,
+                sortOrder: img.sortOrder ?? 0,
+              },
+            });
+          }
+        }
+
+        return tx.product.findUnique({
+          where: { id: productId },
+          include: {
+            variants: {
+              include: {
+                stock: true,
+                images: {
+                  orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+                },
+              },
+            },
+          },
+        });
+      });
+    }
+
+    // Si no hay imágenes, hacer un update simple
     return this.prisma.product.update({
       where: { id: productId },
       data: {
